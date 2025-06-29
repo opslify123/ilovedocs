@@ -1,0 +1,111 @@
+<!-- organize.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Organize PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; background: #f6f9fc; text-align: center; }
+    input, button { margin: 10px; padding: 10px 15px; font-size: 16px; }
+    #thumbnails { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px; }
+    .page-thumb { border: 1px solid #ccc; padding: 5px; cursor: move; background: white; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Organize PDF Pages</h1>
+  <input type="file" id="pdfInput" accept="application/pdf" />
+  <button onclick="downloadReorderedPDF()">Download Reordered PDF</button>
+  <div id="thumbnails"></div>
+
+  <script>
+    let pdfDoc = null;
+    let pageOrder = [];
+
+    document.getElementById("pdfInput").addEventListener("change", async function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(reader.result);
+        pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        const thumbs = document.getElementById("thumbnails");
+        thumbs.innerHTML = "";
+        pageOrder = [];
+
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+          const page = await pdfDoc.getPage(i);
+          const viewport = page.getViewport({ scale: 0.3 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+
+          const wrapper = document.createElement("div");
+          wrapper.classList.add("page-thumb");
+          wrapper.setAttribute("draggable", "true");
+          wrapper.setAttribute("data-page", i - 1);
+          wrapper.appendChild(canvas);
+          thumbs.appendChild(wrapper);
+          pageOrder.push(i - 1);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById("thumbnails").addEventListener("dragstart", e => {
+      if (e.target.closest(".page-thumb")) {
+        e.dataTransfer.setData("text/plain", e.target.closest(".page-thumb").dataset.page);
+      }
+    });
+
+    document.getElementById("thumbnails").addEventListener("dragover", e => {
+      e.preventDefault();
+    });
+
+    document.getElementById("thumbnails").addEventListener("drop", e => {
+      e.preventDefault();
+      const draggedPage = +e.dataTransfer.getData("text/plain");
+      const dropTarget = e.target.closest(".page-thumb");
+      if (!dropTarget) return;
+
+      const dropIndex = pageOrder.indexOf(+dropTarget.dataset.page);
+      const dragIndex = pageOrder.indexOf(draggedPage);
+
+      pageOrder.splice(dragIndex, 1);
+      pageOrder.splice(dropIndex, 0, draggedPage);
+
+      const container = document.getElementById("thumbnails");
+      const sortedThumbs = pageOrder.map(i =>
+        Array.from(container.children).find(c => +c.dataset.page === i)
+      );
+      container.innerHTML = "";
+      sortedThumbs.forEach(c => container.appendChild(c));
+    });
+
+    async function downloadReorderedPDF() {
+      if (!pdfDoc) return alert("Upload a PDF first");
+
+      const originalBytes = await fetch(URL.createObjectURL(document.getElementById("pdfInput").files[0])).then(res => res.arrayBuffer());
+      const pdfLibDoc = await PDFLib.PDFDocument.load(originalBytes);
+      const newPdf = await PDFLib.PDFDocument.create();
+
+      for (const pageIndex of pageOrder) {
+        const [copiedPage] = await newPdf.copyPages(pdfLibDoc, [pageIndex]);
+        newPdf.addPage(copiedPage);
+      }
+
+      const pdfBytes = await newPdf.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "organized.pdf";
+      link.click();
+    }
+  </script>
+</body>
+</html>

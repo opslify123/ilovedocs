@@ -1,0 +1,50 @@
+<!-- pdf-to-word.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF to Word - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Convert PDF to Word</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <br>
+  <button onclick="convertToWord()">Convert Now</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top: 20px;" download="converted.docx">Download Word File</a>
+
+  <script>
+    async function convertToWord() {
+      const file = document.getElementById("pdfFile").files[0];
+      if (!file) return alert("Please select a PDF file");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(reader.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map(item => item.str);
+          fullText += strings.join(" ") + "\n\n";
+        }
+
+        const blob = new Blob([fullText], { type: "application/msword" });
+        const link = document.getElementById("downloadLink");
+        link.href = URL.createObjectURL(blob);
+        link.style.display = "inline-block";
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

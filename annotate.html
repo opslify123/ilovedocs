@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Annotate PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f6f9fc; padding: 40px; }
+    canvas { border: 1px solid #ccc; margin-top: 20px; cursor: crosshair; }
+    input, button { margin: 10px; padding: 10px 15px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Annotate PDF (Highlight Anywhere)</h1>
+  <input type="file" id="pdfUpload" accept="application/pdf" />
+  <br />
+  <button onclick="downloadAnnotatedPDF()">Download Annotated PDF</button>
+  <canvas id="pdfCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('pdfCanvas');
+    const ctx = canvas.getContext('2d');
+    let pdfDoc = null, currentPage = null, pdfBytes;
+    let highlights = [];
+    let startX = 0, startY = 0, isDragging = false;
+
+    // Load PDF and render page
+    document.getElementById('pdfUpload').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      pdfBytes = await file.arrayBuffer();
+      pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+      currentPage = await pdfDoc.getPage(1);
+      const viewport = currentPage.getViewport({ scale: 1.5 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await currentPage.render({ canvasContext: ctx, viewport }).promise;
+    });
+
+    // Start drawing highlight
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+      isDragging = true;
+    });
+
+    // Draw rectangle visually
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const width = x - startX;
+      const height = y - startY;
+
+      // Re-render page and previous highlights
+      currentPage.render({
+        canvasContext: ctx,
+        viewport: currentPage.getViewport({ scale: 1.5 })
+      }).promise.then(() => {
+        // Draw existing highlights
+        for (const h of highlights) {
+          ctx.fillStyle = 'rgba(255,255,0,0.4)';
+          ctx.fillRect(h.x, h.y, h.w, h.h);
+        }
+
+        // Draw current drag
+        ctx.fillStyle = 'rgba(255,255,0,0.4)';
+        ctx.fillRect(startX, startY, width, height);
+      });
+    });
+
+    // Save highlight on mouseup
+    canvas.addEventListener('mouseup', (e) => {
+      isDragging = false;
+      const rect = canvas.getBoundingClientRect();
+      const endX = e.clientX - rect.left;
+      const endY = e.clientY - rect.top;
+      const x = Math.min(startX, endX);
+      const y = Math.min(startY, endY);
+      const w = Math.abs(endX - startX);
+      const h = Math.abs(endY - startY);
+      highlights.push({ x, y, w, h });
+    });
+
+    async function downloadAnnotatedPDF() {
+      if (!pdfBytes || highlights.length === 0) return alert('Please upload and highlight first.');
+
+      const pdfDocLib = await PDFLib.PDFDocument.load(pdfBytes);
+      const page = pdfDocLib.getPages()[0];
+      const { width, height } = page.getSize();
+
+      // Draw each highlight
+      for (const hl of highlights) {
+        page.drawRectangle({
+          x: hl.x,
+          y: height - hl.y - hl.h,
+          width: hl.w,
+          height: hl.h,
+          color: PDFLib.rgb(1, 1, 0),
+          opacity: 0.4,
+        });
+      }
+
+      const pdfData = await pdfDocLib.save();
+      const blob = new Blob([pdfData], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'highlighted.pdf';
+      link.click();
+    }
+  </script>
+</body>
+</html>

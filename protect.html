@@ -1,0 +1,60 @@
+<!-- protect.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protect PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Protect PDF with Password</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <br>
+  <input type="password" id="pdfPassword" placeholder="Set a password">
+  <br>
+  <button onclick="protectPDF()">Protect PDF</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top: 20px;" download="protected.pdf">Download Protected PDF</a>
+
+  <script>
+    async function protectPDF() {
+      const file = document.getElementById("pdfFile").files[0];
+      const password = document.getElementById("pdfPassword").value;
+      if (!file || !password) return alert("Please upload a file and enter a password.");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const existingPdfBytes = new Uint8Array(reader.result);
+        const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+
+        const pdfBytes = await pdfDoc.save({
+          encryption: {
+            userPassword: password,
+            ownerPassword: password,
+            permissions: {
+              printing: 'highResolution',
+              modifying: false,
+              copying: false,
+              annotating: false,
+              fillingForms: false,
+              contentAccessibility: false,
+              documentAssembly: false
+            }
+          }
+        });
+
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.getElementById("downloadLink");
+        link.href = URL.createObjectURL(blob);
+        link.style.display = "inline-block";
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

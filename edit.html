@@ -1,0 +1,138 @@
+<!-- edit.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f6f7fb; }
+    #pdf-container { margin-top: 20px; display: inline-block; position: relative; }
+    canvas { border: 1px solid #ccc; }
+    .text-box {
+      position: absolute;
+      min-width: 50px;
+      min-height: 20px;
+      padding: 4px;
+      border: 1px dashed #27ae60;
+      color: #000;
+      background: #fff;
+      cursor: move;
+      font-size: 16px;
+    }
+    button, input[type="file"] { margin: 10px; padding: 10px 15px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Edit PDF File</h1>
+  <input type="file" id="upload" accept="application/pdf">
+  <button onclick="downloadEditedPDF()">Download Edited PDF</button>
+
+  <div id="pdf-container">
+    <canvas id="pdf-canvas"></canvas>
+  </div>
+
+  <script>
+    let pdfDoc = null;
+    let page = null;
+    let scale = 1.2;
+    let canvas = document.getElementById("pdf-canvas");
+    let ctx = canvas.getContext('2d');
+
+    document.getElementById("upload").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function() {
+          const typedarray = new Uint8Array(reader.result);
+          pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+            pdfDoc = pdf;
+            renderPage(1);
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    function renderPage(num) {
+      pdfDoc.getPage(num).then(function(pageData) {
+        page = pageData;
+        const viewport = page.getViewport({ scale });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        let renderContext = {
+          canvasContext: ctx,
+          viewport: viewport
+        };
+        page.render(renderContext);
+      });
+    }
+
+    canvas.addEventListener("click", function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const input = document.createElement("div");
+      input.className = "text-box";
+      input.contentEditable = true;
+      input.style.left = `${x}px`;
+      input.style.top = `${y}px`;
+      input.textContent = "Edit text";
+
+      makeDraggable(input);
+      document.getElementById("pdf-container").appendChild(input);
+    });
+
+    function makeDraggable(el) {
+      let isDragging = false;
+      let offsetX, offsetY;
+
+      el.addEventListener("mousedown", function(e) {
+        isDragging = true;
+        offsetX = e.offsetX;
+        offsetY = e.offsetY;
+      });
+      document.addEventListener("mousemove", function(e) {
+        if (isDragging) {
+          el.style.left = `${e.pageX - canvas.offsetLeft - offsetX}px`;
+          el.style.top = `${e.pageY - canvas.offsetTop - offsetY}px`;
+        }
+      });
+      document.addEventListener("mouseup", function() {
+        isDragging = false;
+      });
+    }
+
+    async function downloadEditedPDF() {
+      const pdfBytes = await pdfDoc.getData();
+      const pdf = await PDFLib.PDFDocument.load(pdfBytes);
+      const page = pdf.getPage(0);
+      const textBoxes = document.querySelectorAll(".text-box");
+
+      for (let box of textBoxes) {
+        const text = box.textContent;
+        const x = parseFloat(box.style.left);
+        const y = canvas.height - parseFloat(box.style.top);
+        const fontSize = 16;
+        const embeddedFont = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
+        page.drawText(text, {
+          x: x,
+          y: y - fontSize,
+          size: fontSize,
+          font: embeddedFont,
+          color: PDFLib.rgb(0, 0, 0)
+        });
+      }
+
+      const newBytes = await pdf.save();
+      const blob = new Blob([newBytes], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "edited.pdf";
+      link.click();
+    }
+  </script>
+</body>
+</html>

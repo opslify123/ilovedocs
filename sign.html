@@ -1,0 +1,82 @@
+<!-- sign.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+    canvas { border: 1px solid #ccc; display: block; margin: 10px auto; background: white; }
+  </style>
+</head>
+<body>
+  <h1>Sign PDF</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <p>Draw your signature below:</p>
+  <canvas id="signatureCanvas" width="300" height="100"></canvas>
+  <button onclick="clearCanvas()">Clear Signature</button>
+  <br>
+  <button onclick="signPDF()">Sign and Download PDF</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top: 20px;" download="signed.pdf">Download Signed PDF</a>
+
+  <script>
+    const canvas = document.getElementById("signatureCanvas");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.addEventListener("mousedown", () => drawing = true);
+    canvas.addEventListener("mouseup", () => drawing = false);
+    canvas.addEventListener("mouseout", () => drawing = false);
+    canvas.addEventListener("mousemove", draw);
+
+    function draw(e) {
+      if (!drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "black";
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    async function signPDF() {
+      const file = document.getElementById("pdfFile").files[0];
+      if (!file) return alert("Please select a PDF file.");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const pdfDoc = await PDFLib.PDFDocument.load(reader.result);
+        const page = pdfDoc.getPages()[0];
+
+        const imgDataUrl = canvas.toDataURL("image/png");
+        const pngImage = await pdfDoc.embedPng(imgDataUrl);
+        const { width, height } = page.getSize();
+
+        page.drawImage(pngImage, {
+          x: 50,
+          y: 50,
+          width: 150,
+          height: 50,
+        });
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.getElementById("downloadLink");
+        link.href = URL.createObjectURL(blob);
+        link.style.display = "inline-block";
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

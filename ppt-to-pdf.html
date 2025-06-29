@@ -1,0 +1,47 @@
+<!-- ppt-to-pdf.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PowerPoint to PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Convert PowerPoint (PPTX) to PDF</h1>
+  <input type="file" id="pptFile" accept=".pptx">
+  <br>
+  <button onclick="convertToPDF()">Convert to PDF</button>
+
+  <script>
+    function convertToPDF() {
+      const file = document.getElementById("pptFile").files[0];
+      if (!file) return alert("Please upload a PPTX file.");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        try {
+          const pptxBlobUrl = URL.createObjectURL(file);
+          const slidePreview = document.createElement("iframe");
+          slidePreview.src = pptxBlobUrl;
+          slidePreview.style.width = '1000px';
+          slidePreview.style.height = '700px';
+          document.body.appendChild(slidePreview);
+
+          setTimeout(() => {
+            html2pdf().from(slidePreview).save("converted.pdf");
+          }, 2000);
+        } catch (err) {
+          alert("PPT to PDF conversion requires rendering slides visually. Currently limited in browser.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

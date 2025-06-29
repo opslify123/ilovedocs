@@ -1,0 +1,49 @@
+<!-- excel-to-pdf.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel to PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+    table { margin: 20px auto; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Convert Excel to PDF</h1>
+  <input type="file" id="excelFile" accept=".xlsx,.xls">
+  <br>
+  <button onclick="convertToPDF()">Convert to PDF</button>
+
+  <div id="preview"></div>
+
+  <script>
+    function convertToPDF() {
+      const file = document.getElementById("excelFile").files[0];
+      if (!file) return alert("Please upload an Excel file.");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const html = XLSX.utils.sheet_to_html(sheet);
+
+        document.getElementById("preview").innerHTML = html;
+
+        html2pdf()
+          .from(document.getElementById("preview"))
+          .save("converted.pdf");
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

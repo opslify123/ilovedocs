@@ -1,0 +1,57 @@
+<!-- watermark.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watermark PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Add Watermark to PDF</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <br>
+  <input type="text" id="watermarkText" placeholder="Enter watermark text">
+  <br>
+  <button onclick="addWatermark()">Apply Watermark</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top: 20px;" download="watermarked.pdf">Download Watermarked PDF</a>
+
+  <script>
+    async function addWatermark() {
+      const file = document.getElementById("pdfFile").files[0];
+      const watermark = document.getElementById("watermarkText").value;
+      if (!file || !watermark) return alert("Upload PDF and enter watermark text.");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        const pdfDoc = await PDFLib.PDFDocument.load(reader.result);
+        const pages = pdfDoc.getPages();
+
+        for (let page of pages) {
+          const { width, height } = page.getSize();
+          page.drawText(watermark, {
+            x: width / 2 - 100,
+            y: height / 2,
+            size: 40,
+            opacity: 0.3,
+            rotate: PDFLib.degrees(45),
+            color: PDFLib.rgb(0.6, 0.6, 0.6),
+          });
+        }
+
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.getElementById("downloadLink");
+        link.href = URL.createObjectURL(blob);
+        link.style.display = "inline-block";
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

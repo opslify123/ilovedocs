@@ -1,0 +1,63 @@
+<!-- pdf-to-jpg.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF to JPG - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    canvas { display: block; margin: 20px auto; border: 1px solid #ccc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+    a.download-link { display: inline-block; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Convert PDF to JPG</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <br>
+  <button onclick="convertPDFtoJPG()">Convert Now</button>
+  <div id="output"></div>
+
+  <script>
+    async function convertPDFtoJPG() {
+      const file = document.getElementById("pdfFile").files[0];
+      if (!file) return alert("Please select a PDF file.");
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const typedarray = new Uint8Array(reader.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        const output = document.getElementById("output");
+        output.innerHTML = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+          const imgData = canvas.toDataURL("image/jpeg");
+          const img = document.createElement("img");
+          img.src = imgData;
+          img.style.maxWidth = "90%";
+          output.appendChild(img);
+
+          const link = document.createElement("a");
+          link.href = imgData;
+          link.download = `page${i}.jpg`;
+          link.className = "download-link";
+          link.textContent = `Download Page ${i}`;
+          output.appendChild(link);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!-- split.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Split PDF - ILoveEdit</title>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f7f9fb; }
+    input, button { margin: 15px; padding: 10px 15px; font-size: 16px; }
+    label { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Split PDF Pages</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <br>
+  <label for="pageRange">Pages to extract (e.g. 1,3-5):</label>
+  <input type="text" id="pageRange" placeholder="e.g. 1,3-5">
+  <br>
+  <button onclick="splitPDF()">Split Now</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top:20px;" download="split.pdf">Download Split PDF</a>
+
+  <script>
+    function parseRange(str) {
+      let pages = new Set();
+      str.split(',').forEach(part => {
+        if (part.includes('-')) {
+          const [start, end] = part.split('-').map(Number);
+          for (let i = start; i <= end; i++) pages.add(i - 1);
+        } else {
+          pages.add(parseInt(part) - 1);
+        }
+      });
+      return Array.from(pages);
+    }
+
+    async function splitPDF() {
+      const fileInput = document.getElementById('pdfFile');
+      const pageRange = document.getElementById('pageRange').value;
+      if (!fileInput.files.length || !pageRange) return alert('Select a PDF and enter page numbers.');
+
+      const bytes = await fileInput.files[0].arrayBuffer();
+      const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+      const newPdf = await PDFLib.PDFDocument.create();
+      const indices = parseRange(pageRange).filter(i => i < pdfDoc.getPageCount());
+
+      const pages = await newPdf.copyPages(pdfDoc, indices);
+      pages.forEach(p => newPdf.addPage(p));
+
+      const newBytes = await newPdf.save();
+      const blob = new Blob([newBytes], { type: 'application/pdf' });
+      const link = document.getElementById('downloadLink');
+      link.href = URL.createObjectURL(blob);
+      link.style.display = 'inline-block';
+    }
+  </script>
+</body>
+</html>

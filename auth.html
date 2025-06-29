@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login / Signup - ILoveEdit</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(120deg, #e8f5e9, #dcedc8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .auth-box {
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    h2 {
+      text-align: center;
+      color: #2e7d32;
+      margin-bottom: 25px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      border-color: #27ae60;
+      outline: none;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-wrapper span {
+      position: absolute;
+      right: 10px;
+      top: 13px;
+      cursor: pointer;
+      color: #888;
+      font-size: 1.1rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #219150;
+    }
+
+    .toggle {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .toggle a {
+      color: #27ae60;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-box">
+    <h2 id="form-title">Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <div class="password-wrapper">
+      <input type="password" id="password" placeholder="Password" />
+      <span onclick="togglePassword()">👁️</span>
+    </div>
+    <button onclick="handleAuth()" id="auth-btn">Login</button>
+    <div class="toggle">
+      <span id="toggle-text">Don't have an account? </span>
+      <a onclick="toggleMode()">Signup</a>
+    </div>
+  </div>
+
+  <script>
+    let isLogin = true;
+
+    function toggleMode() {
+      isLogin = !isLogin;
+      document.getElementById("form-title").innerText = isLogin ? "Login" : "Signup";
+      document.getElementById("auth-btn").innerText = isLogin ? "Login" : "Signup";
+      document.getElementById("toggle-text").innerText = isLogin ? "Don't have an account?" : "Already have an account?";
+    }
+
+    function togglePassword() {
+      const pass = document.getElementById("password");
+      pass.type = pass.type === "password" ? "text" : "password";
+    }
+
+    function handleAuth() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!email || !password) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      if (isLogin) {
+        const storedEmail = localStorage.getItem("userEmail");
+        const storedPassword = localStorage.getItem("userPassword");
+
+        if (email === storedEmail && password === storedPassword) {
+          alert("Login successful!");
+          window.location.href = "index.html";
+        } else {
+          alert("Incorrect email or password.");
+        }
+      } else {
+        localStorage.setItem("userEmail", email);
+        localStorage.setItem("userPassword", password);
+        alert("Signup successful. You can now log in.");
+        toggleMode();
+      }
+    }
+  </script>
+</body>
+</html>

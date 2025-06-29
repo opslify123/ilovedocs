@@ -1,0 +1,68 @@
+<!-- compress.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Compress PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; background: #f6f9fc; }
+    input, button { padding: 10px 15px; margin: 10px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Compress PDF</h1>
+  <input type="file" id="pdfFile" accept="application/pdf" />
+  <button onclick="compressPDF()">Compress Now</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top: 20px;" download="compressed.pdf">Download Compressed PDF</a>
+
+  <script>
+    async function compressPDF() {
+      const file = document.getElementById('pdfFile').files[0];
+      if (!file) return alert("Select a PDF first.");
+
+      const fileReader = new FileReader();
+      fileReader.onload = async () => {
+        const pdfData = new Uint8Array(fileReader.result);
+        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+        const pdf = await loadingTask.promise;
+
+        const newPdfDoc = await PDFLib.PDFDocument.create();
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 0.5 }); // Smaller scale = smaller size
+
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const context = canvas.getContext('2d');
+
+          await page.render({ canvasContext: context, viewport }).promise;
+
+          const imgData = canvas.toDataURL('image/jpeg', 0.6); // Reduce quality
+          const jpgImageBytes = await fetch(imgData).then(res => res.arrayBuffer());
+          const jpgImage = await newPdfDoc.embedJpg(jpgImageBytes);
+
+          const page1 = newPdfDoc.addPage([viewport.width, viewport.height]);
+          page1.drawImage(jpgImage, {
+            x: 0,
+            y: 0,
+            width: viewport.width,
+            height: viewport.height,
+          });
+        }
+
+        const pdfBytes = await newPdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.getElementById('downloadLink');
+        link.href = URL.createObjectURL(blob);
+        link.style.display = 'inline-block';
+      };
+      fileReader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!-- unlock.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unlock PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Unlock PDF</h1>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <br>
+  <input type="password" id="pdfPassword" placeholder="Enter PDF Password">
+  <br>
+  <button onclick="unlockPDF()">Unlock PDF</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top: 20px;" download="unlocked.pdf">Download Unlocked PDF</a>
+
+  <script>
+    async function unlockPDF() {
+      const file = document.getElementById("pdfFile").files[0];
+      const password = document.getElementById("pdfPassword").value;
+      if (!file) return alert("Please select a PDF file.");
+
+      const reader = new FileReader();
+      reader.onload = async function () {
+        try {
+          const pdfDoc = await PDFLib.PDFDocument.load(reader.result, { password });
+          const pdfBytes = await pdfDoc.save();
+
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const link = document.getElementById("downloadLink");
+          link.href = URL.createObjectURL(blob);
+          link.style.display = "inline-block";
+        } catch (e) {
+          alert("Failed to unlock PDF. Make sure the password is correct.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

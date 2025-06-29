@@ -1,0 +1,46 @@
+<!-- merge.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merge PDF - ILoveEdit</title>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f7f9fb; }
+    input, button { margin: 15px; padding: 10px 15px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Merge PDF Files</h1>
+  <input type="file" id="fileInput" multiple accept="application/pdf">
+  <button onclick="mergePDFs()">Merge Now</button>
+  <br>
+  <a id="downloadLink" style="display:none; margin-top:20px;" download="merged.pdf">Download Merged PDF</a>
+
+  <script>
+    async function mergePDFs() {
+      const input = document.getElementById('fileInput');
+      const files = input.files;
+      if (files.length < 2) return alert("Select at least 1 PDFs to merge.");
+
+      const merged = await PDFLib.PDFDocument.create();
+
+      for (const file of files) {
+        const bytes = await file.arrayBuffer();
+        const pdf = await PDFLib.PDFDocument.load(bytes);
+        const pages = await merged.copyPages(pdf, pdf.getPageIndices());
+        pages.forEach(p => merged.addPage(p));
+      }
+
+      const final = await merged.save();
+      const blob = new Blob([final], { type: 'application/pdf' });
+      const link = document.getElementById('downloadLink');
+      link.href = URL.createObjectURL(blob);
+      link.style.display = 'inline-block';
+    }
+  </script>
+</body>
+</html>
+
+<!-- NEXT: split.html -->

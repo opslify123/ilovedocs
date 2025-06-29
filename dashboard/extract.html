@@ -1,0 +1,60 @@
+<!-- extract.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extract PDF Pages - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f6f9fc; padding: 40px; text-align: center; }
+    input, button { padding: 10px 15px; margin: 10px; font-size: 16px; }
+    #pageNumbers { width: 200px; }
+  </style>
+</head>
+<body>
+  <h1>Extract Pages from PDF</h1>
+  <input type="file" id="pdfFile" accept="application/pdf" />
+  <br>
+  <input type="text" id="pageNumbers" placeholder="e.g. 1,3,5-7" />
+  <br>
+  <button onclick="extractPages()">Extract</button>
+
+  <script>
+    async function extractPages() {
+      const file = document.getElementById("pdfFile").files[0];
+      const pagesText = document.getElementById("pageNumbers").value;
+      if (!file || !pagesText) return alert("Upload a PDF and enter page numbers.");
+
+      const bytes = await file.arrayBuffer();
+      const srcPdf = await PDFLib.PDFDocument.load(bytes);
+      const newPdf = await PDFLib.PDFDocument.create();
+
+      const total = srcPdf.getPageCount();
+      const extractIndices = [];
+
+      pagesText.split(',').forEach(range => {
+        if (range.includes('-')) {
+          const [start, end] = range.split('-').map(n => parseInt(n.trim()));
+          for (let i = start; i <= end; i++) {
+            if (i >= 1 && i <= total) extractIndices.push(i - 1);
+          }
+        } else {
+          const i = parseInt(range.trim());
+          if (i >= 1 && i <= total) extractIndices.push(i - 1);
+        }
+      });
+
+      const copied = await newPdf.copyPages(srcPdf, extractIndices);
+      copied.forEach(p => newPdf.addPage(p));
+      const newBytes = await newPdf.save();
+      const blob = new Blob([newBytes], { type: 'application/pdf' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "extracted.pdf";
+      link.click();
+    }
+  </script>
+</body>
+</html>

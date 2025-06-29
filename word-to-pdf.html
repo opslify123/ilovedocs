@@ -1,0 +1,51 @@
+<!-- word-to-pdf.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word to PDF - ILoveEdit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 40px; text-align: center; background: #f6f9fc; }
+    input, button { padding: 10px 15px; font-size: 16px; margin: 10px; }
+    #doc-content { display: none; padding: 20px; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Convert Word to PDF</h1>
+  <input type="file" id="wordFile" accept=".docx">
+  <br>
+  <button onclick="convertToPDF()">Convert Now</button>
+  <br><br>
+  <div id="doc-content"></div>
+
+  <script>
+    function convertToPDF() {
+      const fileInput = document.getElementById("wordFile");
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a Word (.docx) file.");
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        mammoth.convertToHtml({ arrayBuffer: event.target.result })
+          .then(function(result) {
+            const html = result.value;
+            const contentDiv = document.getElementById("doc-content");
+            contentDiv.innerHTML = html;
+            contentDiv.style.display = "block";
+
+            html2pdf().set({
+              margin: 10,
+              filename: 'converted.pdf',
+              html2canvas: { scale: 2 },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(contentDiv).save();
+          });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>
